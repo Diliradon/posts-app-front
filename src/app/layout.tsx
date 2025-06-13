@@ -7,6 +7,10 @@ import { cn } from 'shared/lib';
 
 import 'app/styles/global.css';
 
+import { AuthProvider } from '@shared/lib/auth';
+import { I18nProvider } from '@shared/providers';
+import { ReduxProvider } from '@shared/providers/ReduxProvider';
+
 const urbanist = Urbanist({
   subsets: ['latin'],
   variable: '--font-urbanist',
@@ -14,9 +18,9 @@ const urbanist = Urbanist({
 });
 
 export const metadata: Metadata = {
-  title: 'Lumitech | Next.js Template',
+  title: 'Next.js Template',
   description:
-    "This Next.js template provides a ready-to-use setup for building fast, scalable web apps. It's recommended for all web projects, even if SEO isn't a priority, as Next.js offers many valuable built-in tools.",
+    'This Next.js template provides a ready-to-use setup for building fast, scalable web apps.',
 };
 
 type Props = {
@@ -32,7 +36,11 @@ const RootLayout = ({ children }: Props) => {
           urbanist.className,
         )}
       >
-        {children}
+        <AuthProvider>
+          <I18nProvider>
+            <ReduxProvider>{children}</ReduxProvider>
+          </I18nProvider>
+        </AuthProvider>
       </body>
     </html>
   );

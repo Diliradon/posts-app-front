@@ -6,7 +6,8 @@
       "esnext"
     ],
     "paths": {
-      "entities/*": ["entities/*"]
+      "@entities/*": ["entities/*"],
+      "@shared/*": ["shared/*"]
     },
     "baseUrl": "./src",
     "allowJs": true,
