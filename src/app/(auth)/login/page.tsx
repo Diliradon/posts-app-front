@@ -3,8 +3,10 @@
 import { useMemo, useState } from 'react';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useAuth } from '@shared/lib/auth';
 import { Mail } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -40,6 +42,9 @@ const getLoginSchema = (t: (key: string) => string) =>
 const LoginPage = () => {
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const { signInWithEmail, signInWithGoogle } = useAuth();
 
   const loginSchema = useMemo(() => getLoginSchema(t), [t]);
 
@@ -53,9 +58,36 @@ const LoginPage = () => {
     },
   });
 
-  const onSubmit = (data: LoginFormData) => {
-    // eslint-disable-next-line no-console
-    console.log(data);
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      setIsLoading(true);
+      await signInWithEmail(data.email, data.password);
+      router.push('/');
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Login failed:', error);
+      form.setError('root', {
+        message: t('auth.login.loginError'),
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsLoading(true);
+      await signInWithGoogle();
+      router.push('/');
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Login failed:', error);
+      form.setError('root', {
+        message: t('auth.login.loginError'),
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -74,6 +106,11 @@ const LoginPage = () => {
       <CardContent className="space-y-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {form.formState.errors.root && (
+              <div className="text-sm text-red-500">
+                {form.formState.errors.root.message}
+              </div>
+            )}
             <FormField
               control={form.control}
               name="email"
@@ -117,8 +154,8 @@ const LoginPage = () => {
               )}
             />
 
-            <Button type="submit" className="w-full">
-              {t('auth.login.signIn')}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? t('auth.login.signingIn') : t('auth.login.signIn')}
             </Button>
           </form>
         </Form>
@@ -146,7 +183,12 @@ const LoginPage = () => {
           </div>
         </div>
 
-        <Button variant="outline" className="w-full">
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleGoogleSignIn}
+          disabled={isLoading}
+        >
           <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
             <path
               fill="currentColor"

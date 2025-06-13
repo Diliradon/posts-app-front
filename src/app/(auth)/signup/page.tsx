@@ -3,12 +3,15 @@
 import { useMemo, useState } from 'react';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { Mail, User } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { auth } from 'shared/config/firebase';
 import { MIN_NAME_LENGTH, MIN_PASSWORD_LENGTH } from 'shared/constants';
 import { useTranslation } from 'shared/i18n/hooks';
 import {
@@ -55,6 +58,8 @@ const getSignupSchema = (t: (key: string) => string) =>
 const SignupPage = () => {
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const signupSchema = useMemo(() => getSignupSchema(t), [t]);
 
@@ -71,9 +76,31 @@ const SignupPage = () => {
     },
   });
 
-  const onSubmit = (data: SignupFormData) => {
-    // eslint-disable-next-line no-console
-    console.log(data);
+  const onSubmit = async (data: SignupFormData) => {
+    try {
+      setIsLoading(true);
+      const { user } = await createUserWithEmailAndPassword(
+        auth,
+        data.email,
+        data.password,
+      );
+
+      // Update the user's display name
+      await updateProfile(user, {
+        displayName: data.name,
+      });
+
+      // Redirect to the home page or dashboard
+      router.push('/');
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Error signing up:', error);
+      form.setError('root', {
+        message: t('auth.signup.registrationError'),
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -92,6 +119,11 @@ const SignupPage = () => {
       <CardContent className="space-y-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {form.formState.errors.root && (
+              <div className="text-sm text-red-500">
+                {form.formState.errors.root.message}
+              </div>
+            )}
             <FormField
               control={form.control}
               name="name"
@@ -211,8 +243,10 @@ const SignupPage = () => {
               )}
             />
 
-            <Button type="submit" className="w-full">
-              {t('auth.signup.createAccount')}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading
+                ? t('auth.signup.creatingAccount')
+                : t('auth.signup.createAccount')}
             </Button>
           </form>
         </Form>

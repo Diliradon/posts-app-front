@@ -1,174 +1,79 @@
 'use client';
 
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-}
+import { auth } from '@shared/config/firebase';
+import { signInWithGoogle } from '@shared/services/auth';
+import {
+  signOut as firebaseSignOut,
+  signInWithEmailAndPassword,
+  User,
+} from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (token: string, user: User) => void;
-  logout: () => void;
-  checkAuth: () => Promise<boolean>;
+  loading: boolean;
+  signInWithGoogle: () => Promise<User>;
+  signInWithEmail: (email: string, password: string) => Promise<User>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Set cookie helper function
-  // eslint-disable-next-line no-magic-numbers
-  const setCookie = (name: string, value: string, days: number = 7) => {
-    if (typeof window !== 'undefined') {
-      const expires = new Date();
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async user => {
+      if (user) {
+        const token = await user.getIdToken();
 
-      // eslint-disable-next-line no-magic-numbers
-      expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-      document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Strict`;
-    }
+        document.cookie = `auth-token=${token}; path=/`;
+      } else {
+        document.cookie =
+          'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+      }
+      setUser(user);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const signInWithEmail = async (email: string, password: string) => {
+    const { user } = await signInWithEmailAndPassword(auth, email, password);
+
+    return user;
   };
 
-  // Remove cookie helper function
-  const removeCookie = (name: string) => {
-    if (typeof window !== 'undefined') {
-      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
-    }
-  };
-
-  // Get token from localStorage
-  const getStoredToken = (): string | null => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('authToken');
-    }
-
-    return null;
-  };
-
-  // Store token in localStorage and cookie
-  const storeToken = (token: string) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('authToken', token);
-      setCookie('authToken', token);
-    }
-  };
-
-  // Remove token from localStorage and cookie
-  const removeToken = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('authUser');
-      removeCookie('authToken');
-    }
-  };
-
-  // Get user from localStorage
-  const getStoredUser = (): User | null => {
-    if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem('authUser');
-
-      return storedUser ? JSON.parse(storedUser) : null;
-    }
-
-    return null;
-  };
-
-  // Store user in localStorage
-  const storeUser = (user: User) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('authUser', JSON.stringify(user));
-    }
-  };
-
-  // Check if user is authenticated by verifying token
-  const checkAuth = async (): Promise<boolean> => {
-    const storedToken = await getStoredToken();
-    const storedUser = await getStoredUser();
-
-    if (!storedToken || !storedUser) {
-      setIsLoading(false);
-
-      return false;
-    }
-
-    // You can add API call here to verify token validity
-    // For now, we'll just check if token exists
-    try {
-      setToken(storedToken);
-      setUser(storedUser);
-      // Sync cookie
-      setCookie('authToken', storedToken);
-      setIsLoading(false);
-
-      return true;
-    } catch (error) {
-      // Token is invalid, clear storage
-      removeToken();
-      setToken(null);
-      setUser(null);
-      setIsLoading(false);
-
-      return false;
-    }
-  };
-
-  // Login function
-  const login = (authToken: string, userData: User) => {
-    setToken(authToken);
-    setUser(userData);
-    storeToken(authToken);
-    storeUser(userData);
-  };
-
-  // Logout function
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    removeToken();
+  const signOut = async () => {
+    await firebaseSignOut(auth);
     router.push('/login');
   };
 
-  // Check authentication on mount
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const value: AuthContextType = useMemo(
+  const value = useMemo(
     () => ({
       user,
-      token,
-      isAuthenticated: !!token && !!user,
-      isLoading,
-      login,
-      logout,
-      checkAuth,
+      loading,
+      signInWithGoogle,
+      signInWithEmail,
+      signOut,
     }),
-    [user, token, isLoading, login, logout, checkAuth],
+    [user, loading, router],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value as AuthContextType}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
 };
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
 
   if (context === undefined) {

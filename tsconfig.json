@@ -26,7 +26,8 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "types": ["node"]
   },
   "include": [
     "svgr.d.ts",

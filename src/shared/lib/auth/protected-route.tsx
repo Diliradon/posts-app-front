@@ -15,16 +15,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   fallback,
 }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!loading && !user) {
       router.push('/login');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [loading, router, user]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       fallback || (
         <div className="flex h-screen items-center justify-center">
@@ -34,7 +34,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return null;
   }
 
