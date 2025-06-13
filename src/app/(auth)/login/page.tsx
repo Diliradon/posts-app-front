@@ -128,7 +128,7 @@ const LoginPage = () => {
             {t('auth.login.noAccount')}{' '}
           </span>
           <Link
-            href="/auth/signup"
+            href="/signup"
             className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
           >
             {t('auth.login.signUp')}

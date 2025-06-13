@@ -222,7 +222,7 @@ const SignupPage = () => {
             {t('auth.signup.alreadyHaveAccount')}{' '}
           </span>
           <Link
-            href="/auth/login"
+            href="/login"
             className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
           >
             {t('auth.signup.signIn')}
