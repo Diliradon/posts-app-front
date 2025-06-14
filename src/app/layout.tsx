@@ -11,6 +11,9 @@ import { AuthProvider } from '@shared/lib/auth';
 import { I18nProvider } from '@shared/providers';
 import { ReduxProvider } from '@shared/providers/ReduxProvider';
 
+import { AppSidebar } from 'widgets';
+import { SidebarProvider } from 'shared/ui';
+
 const urbanist = Urbanist({
   subsets: ['latin'],
   variable: '--font-urbanist',
@@ -38,7 +41,12 @@ const RootLayout = ({ children }: Props) => {
       >
         <AuthProvider>
           <I18nProvider>
-            <ReduxProvider>{children}</ReduxProvider>
+            <ReduxProvider>
+              <SidebarProvider>
+                <AppSidebar />
+                <main className="flex-1">{children}</main>
+              </SidebarProvider>
+            </ReduxProvider>
           </I18nProvider>
         </AuthProvider>
       </body>

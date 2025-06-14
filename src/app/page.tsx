@@ -1,13 +1,7 @@
-import { ProtectedRoute } from '@shared/lib/auth';
+import { redirect } from 'next/navigation';
 
 const HomePage = () => {
-  return (
-    <ProtectedRoute>
-      <main className="p-2">
-        <h1 className="text-2xl font-bold">Hello World</h1>
-      </main>
-    </ProtectedRoute>
-  );
+  redirect('/posts');
 };
 
 export default HomePage;
